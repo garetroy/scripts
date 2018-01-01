@@ -1,6 +1,7 @@
 import json
 import os
 import re
+from subprocess import call
 from github import Github
 
 path = os.path.dirname(os.path.realpath(__file__))
@@ -41,12 +42,13 @@ def display_help():
         Displays help screen
     """
     print("""You have a few options.
-                h       - Help
-                q       - Quit
-                s <str> - Search for string in repos 
-                n       - Shows next 5 repositories... (loops back around)
-                n # #   - Shows repositories from first number to next
-                c # ... - A sequence of integers E.G. "1 2 3 4" corresponding
+                h        - Help
+                q        - Quit
+                s <str>  - Search for string in repos 
+                l <str> - Creates a new repository
+                n        - Shows next 5 repositories... (loops back around)
+                n # #    - Shows repositories from first number to next
+                c # ...  - A sequence of integers E.G. "1 2 3 4" corresponding
                 to which repositories you want to clone in the 
                 current directory
           """)
@@ -73,6 +75,23 @@ def check(string,inp):
     """
     return re.compile(str(inp)).match(str(string))
 
+def create_repo(string):
+    """
+        Creates a repo with the name of the string and prints the url
+            (Adds directory, creates remote, adds readme, adds, commits,push)
+    """
+    if(not os.path.exists("./" + str(string))):
+        print("Creating Directory")
+        os.makedirs("./" + str(string)) 
+        print("Creating Repo")
+        os.chdir("./" + str(string))
+        url = g_user.create_repo(string).clone_url
+        call("git init; git remote add origin " + str(url),shell=True)
+        print("Done")
+    else:
+        print("Could not create repo")
+    return
+
 
 def step():
     """
@@ -93,12 +112,11 @@ def step():
         return -1
     
     split_string = next_step.split(" ")
-    if("s" in next_step and len(split_string) > 1):
+    if("s" == split_string[0] and len(split_string) > 1):
         search(split_string[1])
         return 1
 
     if(next_step == "n"):
-
         if(repo_indx+5 > repo_size):
             incr = (repo_indx+5 - repo_size)
             display(repo_indx,repo_indx+incr)
@@ -110,16 +128,19 @@ def step():
         repo_indx += 5
         return 1        
 
-    if("n" in next_step and len(split_string) > 1):
+    if("n"  == split_string[0] and len(split_string) > 1):
         if(split_string[1].isdigit() and split_string[2].isdigit()):
             display(int(split_string[1]),int(split_string[2]))
         return 1
 
-    if("c" in next_step and len(split_string) > 1): 
+    if("c" == split_string[0] and len(split_string) > 1): 
         for i in split_string:
             if i.isdigit() and int(i) <= repo_size:
                 url = repos[int(i)-1].clone_url
                 os.system('git clone ' + url)
+
+    if("l" == split_string[0] and len(split_string) > 1):
+        create_repo(split_string[1])
 
     return 1
 
